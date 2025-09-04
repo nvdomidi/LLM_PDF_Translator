@@ -1,8 +1,10 @@
 import io
+import tempfile
 from typing import Optional
 
 import streamlit as st
 from pypdf import PdfReader
+
 from styles import apply_custom_styles
 
 # Page configuration
@@ -18,7 +20,6 @@ apply_custom_styles()
 
 # App title and description
 st.title("📄 LLM PDF Translator")
-st.caption("Upload a PDF, choose languages, select a page range, then press Translate.")
 
 # Language options
 COMMON_LANGUAGES = [
@@ -68,7 +69,7 @@ def validate_inputs(
     return errors
 
 
-def show_translation_summary(start_page, end_page, src_lang, tgt_lang):
+def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang):
     """Show translation summary metrics."""
     st.markdown("### Translation Summary")
     col1, col2, col3 = st.columns(3)
@@ -78,6 +79,10 @@ def show_translation_summary(start_page, end_page, src_lang, tgt_lang):
         st.metric("Source Language", src_lang.split()[0])
     with col3:
         st.metric("Target Language", tgt_lang.split()[0])
+    import pymupdf4llm
+
+    md_text = pymupdf4llm.to_markdown(pdf_file)
+    st.markdown(md_text)
 
 
 def show_instructions():
@@ -101,6 +106,11 @@ def main():
     )
 
     if uploaded_pdf:
+        # Save to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as pdf_file:
+            pdf_file.write(uploaded_pdf.read())
+            temp_path = pdf_file.name
+
         # Show file info
         file_size_mb = len(uploaded_pdf.getvalue()) / (1024 * 1024)
         st.info(
@@ -164,7 +174,7 @@ def main():
 
                     progress_bar = st.progress(0)
                     for i in range(100):
-                        time.sleep(0.02)  # Simulate work
+                        time.sleep(0.01)  # Simulate work
                         progress_bar.progress(i + 1)
 
                     progress_bar.empty()
@@ -173,7 +183,9 @@ def main():
                     )
 
                     # Show translation summary
-                    show_translation_summary(start_page, end_page, src_lang, tgt_lang)
+                    show_translation_summary(
+                        pdf_file, start_page, end_page, src_lang, tgt_lang
+                    )
     else:
         # Show instructions when no file uploaded
         show_instructions()
@@ -181,4 +193,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
