@@ -5,6 +5,7 @@ from typing import Optional
 import streamlit as st
 from pypdf import PdfReader
 
+from core.extract import extract_text
 from styles import apply_custom_styles
 
 # Page configuration
@@ -69,6 +70,12 @@ def validate_inputs(
     return errors
 
 
+def translate_pdf(pdf_file, src_lang, tgt_lang, start_page, end_page):
+    extracted_text = extract_text(pdf_file)
+    print(extracted_text)
+    return
+
+
 def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang):
     """Show translation summary metrics."""
     st.markdown("### Translation Summary")
@@ -79,10 +86,22 @@ def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang)
         st.metric("Source Language", src_lang.split()[0])
     with col3:
         st.metric("Target Language", tgt_lang.split()[0])
-    import pymupdf4llm
+    # import pymupdf4llm
+    #
+    # md_text = pymupdf4llm.to_markdown(pdf_file)
+    #
+    # st.markdown(md_text)
 
-    md_text = pymupdf4llm.to_markdown(pdf_file)
-    st.markdown(md_text)
+    with open("output.pdf", "rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+
+    # Download button
+    st.download_button(
+        label="Download PDF",
+        data=pdf_bytes,
+        file_name="output.pdf",
+        mime="application/pdf",
+    )
 
 
 def show_instructions():
@@ -183,6 +202,7 @@ def main():
                     )
 
                     # Show translation summary
+                    translate_pdf(pdf_file, src_lang, tgt_lang, start_page, end_page)
                     show_translation_summary(
                         pdf_file, start_page, end_page, src_lang, tgt_lang
                     )
