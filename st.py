@@ -4,8 +4,7 @@ from typing import IO
 import streamlit as st
 
 from core.extract import extract_layout, get_page_count
-from core.summarize import summarize_doc
-from core.translate import translate_chunk
+from core.translate import translate_doc
 from styles import apply_custom_styles
 
 # Page configuration
@@ -70,11 +69,19 @@ def translate_pdf(
 ):
     extract_layout(pdf_file)
     print("layout extracted")
-    summary = summarize_doc(pdf_file)
-    print("summary generated")
-    st.markdown(summary)
-    translated = translate_chunk(summary, src_lang, tgt_lang)
-    st.markdown(translated.content)
+    # summary = summarize_doc(pdf_file)
+    # print("summary generated")
+    # st.markdown(summary)
+    # translated = translate_chunk(summary, src_lang, tgt_lang)
+    # st.markdown(translated.content)
+
+    translated_doc = translate_doc(pdf_file, src_lang, tgt_lang)
+    st.markdown(translated_doc)
+
+    st.markdown(
+        f"<div style='direction: rtl; text-align: right;'>{translated_doc}</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang):

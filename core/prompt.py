@@ -24,3 +24,27 @@ def translate_prompt(chunk: str, source_lang: str, target_lang: str) -> str:
     ### Translation
     """
     return prompt
+
+
+def translate_prompt_with_context(
+    chunk: str,
+    summary: str,
+    source_lang: str,
+    target_lang: str,
+) -> str:
+    prompt = f"""
+    ### Instructions
+    Translate the provided text from {source_lang} to {target_lang}.
+    Keep in mind the context provided, to help with translation.
+    Don't translate names, dates, numbers, or formulas.
+    Output only the translated text with no explanations or extra phrases.
+
+    ### Context
+    {summary}
+
+    ### Text
+    {chunk}
+
+    ### Translation
+    """
+    return prompt

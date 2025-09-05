@@ -25,6 +25,10 @@ def summarize_doc(pdf_file: IO[bytes]) -> str:
         summaries.append(summary.content)
 
     all_summaries = "\n".join(summaries)
-    summary = summarize_chunk(all_summaries)
 
-    return summary.content
+    if len(summaries) > 1:
+        summary = summarize_chunk(all_summaries).content
+    else:
+        summary = all_summaries
+
+    return summary
