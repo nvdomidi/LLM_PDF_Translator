@@ -1,11 +1,10 @@
-import io
 import tempfile
-from typing import Optional
+from typing import IO
 
 import streamlit as st
-from pypdf import PdfReader
 
-from core.extract import extract_text
+from core.extract import extract_layout, get_page_count
+from core.summarize import summarize_doc
 from styles import apply_custom_styles
 
 # Page configuration
@@ -42,23 +41,18 @@ COMMON_LANGUAGES = [
 ]
 
 
-def get_pdf_page_count(file_bytes: bytes) -> Optional[int]:
-    """Get the number of pages in a PDF file."""
-    try:
-        reader = PdfReader(io.BytesIO(file_bytes))
-        return len(reader.pages)
-    except Exception as e:
-        st.error(f"Error reading PDF: {e}")
-        return None
-
-
 def validate_inputs(
-    uploaded_file, src_lang, tgt_lang, start_page, end_page, page_count
+    pdf_file: IO[bytes],
+    src_lang: str,
+    tgt_lang: str,
+    start_page: int,
+    end_page: int,
+    page_count: int,
 ):
     """Validate all inputs and return list of errors."""
     errors = []
 
-    if uploaded_file is None:
+    if pdf_file is None:
         errors.append("❌ Please upload a PDF first.")
     if src_lang == tgt_lang:
         errors.append("❌ Source and target languages must be different.")
@@ -70,10 +64,11 @@ def validate_inputs(
     return errors
 
 
-def translate_pdf(pdf_file, src_lang, tgt_lang, start_page, end_page):
-    extracted_text = extract_text(pdf_file)
-    print(extracted_text)
-    return
+def translate_pdf(
+    pdf_file: IO[bytes], src_lang: str, tgt_lang: str, start_page: int, end_page: int
+):
+    extract_layout(pdf_file)
+    summarize_doc(pdf_file)
 
 
 def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang):
@@ -128,7 +123,6 @@ def main():
         # Save to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as pdf_file:
             pdf_file.write(uploaded_pdf.read())
-            temp_path = pdf_file.name
 
         # Show file info
         file_size_mb = len(uploaded_pdf.getvalue()) / (1024 * 1024)
@@ -148,8 +142,7 @@ def main():
             )
 
         # Get page count and set up page selection
-        file_bytes = uploaded_pdf.getvalue()
-        page_count = get_pdf_page_count(file_bytes)
+        page_count = get_page_count(pdf_file)
 
         if page_count:
             st.markdown(f"**Document has {page_count} pages**")
