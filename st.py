@@ -1,11 +1,37 @@
+import os
 import tempfile
+from pathlib import Path
 from typing import IO
 
 import streamlit as st
+import yaml
+from dotenv import load_dotenv
 
-from core.extract import extract_layout, get_page_count
-from core.translate import translate_doc
+from core.extract import get_page_count
+from core.translate import translate_pdf
 from styles import apply_custom_styles
+
+CONFIG_FILE = Path("config.yaml")
+ENV_FILE = Path(".env")
+
+
+def load_config():
+    # Load environment variables from .env into os.environ
+    if ENV_FILE.exists():
+        load_dotenv(ENV_FILE)
+
+    # Start with config from YAML
+    config = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, "r") as f:
+            config = yaml.safe_load(f) or {}
+
+    # Merge in all environment variables
+    for key, value in os.environ.items():
+        config[key.lower()] = value
+
+    return config
+
 
 # Page configuration
 st.set_page_config(
@@ -64,26 +90,6 @@ def validate_inputs(
     return errors
 
 
-def translate_pdf(
-    pdf_file: IO[bytes], src_lang: str, tgt_lang: str, start_page: int, end_page: int
-):
-    extract_layout(pdf_file)
-    print("layout extracted")
-    # summary = summarize_doc(pdf_file)
-    # print("summary generated")
-    # st.markdown(summary)
-    # translated = translate_chunk(summary, src_lang, tgt_lang)
-    # st.markdown(translated.content)
-
-    translated_doc = translate_doc(pdf_file, src_lang, tgt_lang)
-    st.markdown(translated_doc)
-
-    st.markdown(
-        f"<div style='direction: rtl; text-align: right;'>{translated_doc}</div>",
-        unsafe_allow_html=True,
-    )
-
-
 def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang):
     """Show translation summary metrics."""
     st.markdown("### Translation Summary")
@@ -94,11 +100,6 @@ def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang)
         st.metric("Source Language", src_lang.split()[0])
     with col3:
         st.metric("Target Language", tgt_lang.split()[0])
-    # import pymupdf4llm
-    #
-    # md_text = pymupdf4llm.to_markdown(pdf_file)
-    #
-    # st.markdown(md_text)
 
     with open("output.pdf", "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
@@ -208,7 +209,21 @@ def main():
                     )
 
                     # Show translation summary
-                    translate_pdf(pdf_file, src_lang, tgt_lang, start_page, end_page)
+                    config = load_config()
+                    summary, translation = translate_pdf(
+                        pdf_file, config, src_lang, tgt_lang, start_page, end_page
+                    )
+
+                    st.markdown(
+                        f"<div style='direction: rtl; text-align: right;'>{summary}</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                    st.markdown(
+                        f"<div style='direction: rtl; text-align: right;'>{translation}</div>",
+                        unsafe_allow_html=True,
+                    )
+
                     show_translation_summary(
                         pdf_file, start_page, end_page, src_lang, tgt_lang
                     )

@@ -9,9 +9,9 @@ class OpenAIClient(BaseClient):
     def ask(self, prompt: str) -> str:
         # Find the API key based on the base URL
         if "openrouter" in self.base_url:
-            self.api_key = os.getenv("OPENROUTER_API_KEY")
+            self.api_key = os.getenv("openrouter_api_key")
         elif "openai" in self.base_url:
-            self.api_key = os.getenv("OPENAI_API_KEY")
+            self.api_key = os.getenv("openai_api_key")
 
         client = OpenAI(
             base_url=self.base_url,

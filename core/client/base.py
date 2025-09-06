@@ -8,7 +8,6 @@ class BaseClient(ABC):
 
     def __init__(
         self,
-        str,
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
