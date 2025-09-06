@@ -1,0 +1,4 @@
+base_url: http://ollama:11434
+model: gemma3:1b
+source_lang: English
+target_lang: Persian فارسی
