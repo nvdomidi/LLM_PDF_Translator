@@ -607,6 +607,7 @@ dependencies = [
     { name = "openai" },
     { name = "pymupdf4llm" },
     { name = "pypdf" },
+    { name = "pyyaml" },
     { name = "streamlit" },
 ]
 
@@ -617,6 +618,7 @@ requires-dist = [
     { name = "openai", specifier = ">=1.106.1" },
     { name = "pymupdf4llm", specifier = ">=0.0.27" },
     { name = "pypdf", specifier = ">=6.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "streamlit", specifier = ">=1.49.1" },
 ]
 

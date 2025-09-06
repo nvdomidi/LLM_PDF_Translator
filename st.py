@@ -151,7 +151,7 @@ def main():
             )
         with col2:
             tgt_lang = st.selectbox(
-                "To", options=COMMON_LANGUAGES[1:], index=0, key="tgt_lang"
+                "To", options=COMMON_LANGUAGES, index=1, key="tgt_lang"
             )
 
         # Get page count and set up page selection
