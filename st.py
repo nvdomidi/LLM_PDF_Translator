@@ -8,7 +8,7 @@ import yaml
 from dotenv import load_dotenv
 
 from core.extract import get_page_count
-from core.translate import translate_pdf
+from core.translate import translate_pdf_preserve_layout
 from styles import apply_custom_styles
 
 CONFIG_FILE = Path("config.yaml")
@@ -194,39 +194,19 @@ def main():
                 for error in errors:
                     st.error(error)
             else:
-                # Show translation progress
+                # Perform translation
                 with st.spinner("🔄 Translating your document..."):
-                    import time
-
-                    progress_bar = st.progress(0)
-                    for i in range(100):
-                        time.sleep(0.01)  # Simulate work
-                        progress_bar.progress(i + 1)
-
-                    progress_bar.empty()
-                    st.success(
-                        "✅ Translation completed successfully! This was a demo translation."
-                    )
-
-                    # Show translation summary
                     config = load_config()
-                    summary, translation = translate_pdf(
-                        pdf_file, config, src_lang, tgt_lang, start_page, end_page
-                    )
+                    with open(pdf_file.name, "rb") as f:
+                        translate_pdf_preserve_layout(
+                            f, "output.pdf", config, src_lang, tgt_lang
+                        )
 
-                    st.markdown(
-                        f"<div style='direction: rtl; text-align: right;'>{summary}</div>",
-                        unsafe_allow_html=True,
-                    )
+                st.success("✅ Translation completed successfully!")
 
-                    st.markdown(
-                        f"<div style='direction: rtl; text-align: right;'>{translation}</div>",
-                        unsafe_allow_html=True,
-                    )
-
-                    show_translation_summary(
-                        pdf_file, start_page, end_page, src_lang, tgt_lang
-                    )
+                show_translation_summary(
+                    pdf_file, start_page, end_page, src_lang, tgt_lang
+                )
     else:
         # Show instructions when no file uploaded
         show_instructions()
