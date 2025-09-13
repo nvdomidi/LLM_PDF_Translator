@@ -1,5 +1,7 @@
 from typing import IO
+import io
 
+import pymupdf
 from core.client.base import BaseClient
 from core.client.ollama import OllamaClient
 from core.extract import extract_text
@@ -70,3 +72,35 @@ def translate_pdf(
     # )
 
     return summary, all_translations
+
+
+def translate_pdf_preserve_layout(
+    pdf_file: IO[bytes],
+    text: str,
+    config: dict,
+) -> bytes:
+    """Insert translated text into the PDF while preserving layout.
+
+    This function embeds a Persian-capable font in the document so that
+    inserted text renders correctly. The path to the font can be configured
+    via ``config['font_path']``.
+    """
+
+    doc = pymupdf.Document(pdf_file)
+    font_path = config.get("font_path", "fonts/BahijNazanin-Regular.ttf")
+
+    # Load the font and embed it in the document
+    fontname = doc.insert_font(fontfile=font_path)
+    doc.embed_font(fontname)
+
+    for page in doc:
+        page.insert_textbox(
+            page.rect,
+            text,
+            fontname=fontname,
+            fontsize=12,
+        )
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return buffer.getvalue()
