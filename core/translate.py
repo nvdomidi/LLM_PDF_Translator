@@ -82,12 +82,19 @@ def translate_pdf_preserve_layout(
     config: dict,
     src_lang: str,
     tgt_lang: str,
+    start_page: int,
+    end_page: int,
 ) -> None:
-    """Translate a PDF and write a new PDF preserving the original layout."""
+    """Translate a PDF and write a new PDF preserving the original layout.
+
+    Only pages within ``start_page`` and ``end_page`` (1-indexed, inclusive)
+    are processed and included in the output document.
+    """
 
     client = OllamaClient(model=config["model"], base_url=config["base_url"])
 
     doc = pymupdf.open(stream=pdf_file.read(), filetype="pdf")
+    doc.select(list(range(start_page - 1, end_page)))
 
     rtl = tgt_lang.lower() in {"fa", "farsi", "persian"}
 

@@ -199,7 +199,13 @@ def main():
                     config = load_config()
                     with open(pdf_file.name, "rb") as f:
                         translate_pdf_preserve_layout(
-                            f, "output.pdf", config, src_lang, tgt_lang
+                            f,
+                            "output.pdf",
+                            config,
+                            src_lang,
+                            tgt_lang,
+                            start_page,
+                            end_page,
                         )
 
                 st.success("✅ Translation completed successfully!")
