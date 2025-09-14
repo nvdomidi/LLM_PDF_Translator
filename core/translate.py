@@ -1,11 +1,9 @@
-import os
 from typing import IO, Callable
 
 import pymupdf
 
 from core.client.base import BaseClient
 from core.client.ollama import OllamaClient
-from core.client.openai import OpenAIClient
 from core.extract import extract_text
 from core.prompt import translate_prompt, translate_prompt_with_context
 from core.summarize import summarize_doc
@@ -92,13 +90,13 @@ def translate_pdf_preserve_layout(
     are processed and included in the output document.
     """
 
-    # client = OllamaClient(model=config["model"], base_url=config["base_url"])
+    client = OllamaClient(model=config["model"], base_url=config["base_url"])
 
-    client = OpenAIClient(
-        api_key=os.environ["OPENROUTER_API_KEY"],
-        model=config["model"],
-        base_url=config["base_url"],
-    )
+    # client = OpenAIClient(
+    #     api_key=os.environ["OPENROUTER_API_KEY"],
+    #     model=config["model"],
+    #     base_url=config["base_url"],
+    # )
 
     # Summarize the document to provide translation context
     summary = summarize_doc(
