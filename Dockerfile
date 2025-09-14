@@ -1,28 +1,12 @@
-FROM ubuntu:22.04
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    PIP_PREFER_BINARY=1 \
-    DEBCONF_NOWARNINGS=yes
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get install -y \
-        poppler-utils \
-        libpoppler-dev \
-        wget \
-        curl \
-        git \
-        ffmpeg \
-        libsm6 \
-        libxext6 \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* /var/tmp/*
+FROM ghcr.io/astral-sh/uv:latest
 
 WORKDIR /app
 
-ADD . /app/
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-CMD ["bash"]
+COPY . .
+
+EXPOSE 8501
+
+CMD ["uv", "run", "streamlit", "run", "st.py"]
