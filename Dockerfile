@@ -1,28 +1,19 @@
-FROM ubuntu:22.04
+FROM python:3.13-slim
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    PIP_PREFER_BINARY=1 \
-    DEBCONF_NOWARNINGS=yes
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get install -y \
-        poppler-utils \
-        libpoppler-dev \
-        wget \
-        curl \
-        git \
-        ffmpeg \
-        libsm6 \
-        libxext6 \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* /var/tmp/*
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-ADD . /app/
+# Copy dependency definitions and install without project to leverage layer caching
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
 
-CMD ["bash"]
+# Copy the rest of the application and install it
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+EXPOSE 8501
+
+CMD ["uv", "run", "streamlit", "run", "st.py"]
