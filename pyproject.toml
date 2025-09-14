@@ -10,6 +10,7 @@ dependencies = [
     "langchain-ollama>=0.3.7",
     "openai>=1.106.1",
     "pymupdf4llm>=0.0.27",
+    "pymupdf>=1.26.4",
     "pypdf>=6.0.0",
     "pyyaml>=6.0.2",
     "streamlit>=1.49.1",
