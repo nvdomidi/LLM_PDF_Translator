@@ -1,5 +1,5 @@
 import os
-from typing import IO
+from typing import IO, Callable
 
 import pymupdf
 
@@ -84,6 +84,7 @@ def translate_pdf_preserve_layout(
     tgt_lang: str,
     start_page: int,
     end_page: int,
+    progress_callback: Callable[[int], None] | None = None,
 ) -> None:
     """Translate a PDF and write a new PDF preserving the original layout.
 
@@ -100,7 +101,9 @@ def translate_pdf_preserve_layout(
     )
 
     # Summarize the document to provide translation context
-    summary = summarize_doc(pdf_file, client)
+    summary = summarize_doc(
+        pdf_file, client, progress_callback=progress_callback, progress_range=(0, 20)
+    )
 
     # Reset the file pointer after reading during summarization
     pdf_file.seek(0)
@@ -117,7 +120,20 @@ def translate_pdf_preserve_layout(
         % font_file1
     )
 
-    for page in doc:
+    # Count total blocks to translate
+    total_blocks = 0
+    for i in range(doc.page_count):
+        page = doc[i]
+        blocks = page.get_text("blocks")
+        for block in blocks:
+            text = block[4]
+            if text.strip():
+                total_blocks += 1
+
+    processed_blocks = 0
+
+    for i in range(doc.page_count):
+        page = doc[i]
         blocks = page.get_text("blocks")
         rects = []
         translations = []
@@ -136,6 +152,11 @@ def translate_pdf_preserve_layout(
             translations.append(translated)
             page.add_redact_annot(rect, fill=(1, 1, 1))
 
+            processed_blocks += 1
+            if progress_callback and total_blocks:
+                progress = 20 + 80 * processed_blocks / total_blocks
+                progress_callback(int(progress))
+
         # Remove only the original text
         page.apply_redactions(images=0, graphics=0, text=0)
 
@@ -153,3 +174,6 @@ def translate_pdf_preserve_layout(
             #     fontsize -= 1
 
     doc.save(output_path)
+
+    if progress_callback:
+        progress_callback(100)
