@@ -194,7 +194,8 @@ def main():
                 for error in errors:
                     st.error(error)
             else:
-                # Perform translation
+                # Perform translation with progress bar
+                progress_bar = st.progress(0)
                 with st.spinner("🔄 Translating your document..."):
                     config = load_config()
                     with open(pdf_file.name, "rb") as f:
@@ -206,8 +207,10 @@ def main():
                             tgt_lang,
                             start_page,
                             end_page,
+                            progress_callback=progress_bar.progress,
                         )
 
+                progress_bar.empty()
                 st.success("✅ Translation completed successfully!")
 
                 show_translation_summary(

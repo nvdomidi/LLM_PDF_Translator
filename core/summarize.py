@@ -1,4 +1,4 @@
-from typing import IO
+from typing import IO, Callable, Tuple
 
 from core.client.base import BaseClient
 from core.extract import extract_text
@@ -15,17 +15,37 @@ def summarize_chunk(chunk: str, client: BaseClient = None) -> str:
     return resp
 
 
-def summarize_doc(pdf_file: IO[bytes], client: BaseClient = None) -> str:
+def summarize_doc(
+    pdf_file: IO[bytes],
+    client: BaseClient = None,
+    progress_callback: Callable[[int], None] | None = None,
+    progress_range: Tuple[int, int] = (0, 20),
+) -> str:
+    """Summarize a document with optional progress updates."""
+
     # Client should be provided beforehand
     if client is None:
         return ""
 
     docs = extract_text(pdf_file, chunk_size=10000)
     summaries = []
-    for doc in docs:
+
+    total_chunks = len(docs)
+    start, end = progress_range
+
+    for idx, doc in enumerate(docs, start=1):
         summary = summarize_chunk(doc, client)
         print("summary:", summary)
         summaries.append(summary)
+
+        if progress_callback and total_chunks:
+            progress = start + (end - start) * idx / total_chunks
+            progress_callback(int(progress))
+
+    if not summaries:
+        if progress_callback:
+            progress_callback(end)
+        return ""
 
     all_summaries = "\n".join(summaries)
 
