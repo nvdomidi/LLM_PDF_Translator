@@ -1,11 +1,11 @@
+import os
 from typing import IO
 
-import arabic_reshaper
 import pymupdf
-from bidi.algorithm import get_display
 
 from core.client.base import BaseClient
 from core.client.ollama import OllamaClient
+from core.client.openai import OpenAIClient
 from core.extract import extract_text
 from core.prompt import translate_prompt, translate_prompt_with_context
 from core.summarize import summarize_doc
@@ -91,12 +91,25 @@ def translate_pdf_preserve_layout(
     are processed and included in the output document.
     """
 
-    client = OllamaClient(model=config["model"], base_url=config["base_url"])
+    # client = OllamaClient(model=config["model"], base_url=config["base_url"])
+
+    client = OpenAIClient(
+        api_key=os.environ["OPENROUTER_API_KEY"],
+        model=config["model"],
+        base_url=config["base_url"],
+    )
 
     doc = pymupdf.open(stream=pdf_file.read(), filetype="pdf")
     doc.select(list(range(start_page - 1, end_page)))
 
-    rtl = tgt_lang.lower() in {"fa", "farsi", "persian"}
+    rtl = True
+
+    font_file1 = "fonts/Yekan.ttf"
+    css1 = (
+        """@font-face {font-family: sans-serif; src: url("%s");}
+    body {font-family:sans-serif;} """
+        % font_file1
+    )
 
     for page in doc:
         blocks = page.get_text("blocks")
@@ -110,9 +123,6 @@ def translate_pdf_preserve_layout(
 
             translated = translate_chunk(text, src_lang, tgt_lang, client)
 
-            if rtl:
-                translated = get_display(arabic_reshaper.reshape(translated))
-
             rect = pymupdf.Rect(x0, y0, x1, y1)
             rects.append(rect)
             translations.append(translated)
@@ -124,15 +134,14 @@ def translate_pdf_preserve_layout(
         align = 2 if rtl else 0
         for rect, text in zip(rects, translations):
             fontsize = rect.y1 - rect.y0 - 1
-            while fontsize > 5:
-                area = page.insert_textbox(
-                    rect,
-                    text,
-                    fontsize=fontsize,
-                    align=align,
-                )
-                if area >= 0:
-                    break
-                fontsize -= 1
+            text = f"""
+            <div dir="rtl">{text}</div>
+            """
+            page.insert_htmlbox(rect, text, css=css1)
+            # while fontsize > 5:
+            #     area = page.insert_textbox(rect, text, fontsize=fontsize, fontname="F0")
+            #     if area >= 0:
+            #         break
+            #     fontsize -= 1
 
     doc.save(output_path)
