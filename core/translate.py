@@ -99,6 +99,12 @@ def translate_pdf_preserve_layout(
         base_url=config["base_url"],
     )
 
+    # Summarize the document to provide translation context
+    summary = summarize_doc(pdf_file, client)
+
+    # Reset the file pointer after reading during summarization
+    pdf_file.seek(0)
+
     doc = pymupdf.open(stream=pdf_file.read(), filetype="pdf")
     doc.select(list(range(start_page - 1, end_page)))
 
@@ -121,7 +127,9 @@ def translate_pdf_preserve_layout(
             if not text.strip():
                 continue
 
-            translated = translate_chunk(text, src_lang, tgt_lang, client)
+            translated = translate_chunk_with_context(
+                text, summary, src_lang, tgt_lang, client
+            )
 
             rect = pymupdf.Rect(x0, y0, x1, y1)
             rects.append(rect)
