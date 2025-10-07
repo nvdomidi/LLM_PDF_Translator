@@ -1,7 +1,7 @@
 def summarize_prompt(chunk: str) -> str:
     prompt = f"""
     ### Instructions
-    Summarize the following text concisely. Keep the main meaning, clarity, and tone. 
+    Summarize the following text concisely. Keep the main meaning, clarity, and tone.
     Remove redundancy, simplify phrasing, and output only the summary text with no prefatory phrases or explanations.
 
     ### Input
@@ -12,32 +12,31 @@ def summarize_prompt(chunk: str) -> str:
     return prompt
 
 
-def translate_prompt(chunk: str, source_lang: str, target_lang: str) -> str:
+def rewrite_prompt(chunk: str, instruction: str) -> str:
     prompt = f"""
     ### Instructions
-    Translate the following text from {source_lang} to {target_lang}. 
-    Output only the translated text with no explanations or extra phrases.
+    You will rewrite the provided text according to this request: {instruction}
+    Preserve the core meaning, keep facts accurate, and ensure the output is fluent and readable.
+    Return only the rewritten text without commentary.
 
-    ### Input
+    ### Text
     {chunk}
 
-    ### Translation
+    ### Rewritten Text
     """
     return prompt
 
 
-def translate_prompt_with_context(
+def rewrite_prompt_with_context(
     chunk: str,
     summary: str,
-    source_lang: str,
-    target_lang: str,
+    instruction: str,
 ) -> str:
     prompt = f"""
     ### Instructions
-    Translate the provided text from {source_lang} to {target_lang}.
-    Keep in mind the context provided, to help with translation.
-    Don't translate names, dates, numbers, or formulas.
-    Output only the translated text with no explanations or extra phrases.
+    Rewrite the provided text according to this request: {instruction}
+    Use the context to stay consistent with the overall document meaning.
+    Keep facts accurate and output only the rewritten text without commentary.
 
     ### Context
     {summary}
@@ -45,6 +44,6 @@ def translate_prompt_with_context(
     ### Text
     {chunk}
 
-    ### Translation
+    ### Rewritten Text
     """
     return prompt
