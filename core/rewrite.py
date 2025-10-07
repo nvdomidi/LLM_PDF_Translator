@@ -3,11 +3,12 @@ from typing import IO, Callable
 import pymupdf
 
 from core.client.base import BaseClient
-from core.client.ollama import OllamaClient
+
+# from core.client.ollama import OllamaClient
+from core.client.openai import OpenAIClient
 from core.extract import extract_text
 from core.prompt import rewrite_prompt, rewrite_prompt_with_context
 from core.summarize import summarize_doc
-
 
 MIN_WORDS_TO_REWRITE = 10
 
@@ -57,7 +58,7 @@ def rewrite_pdf(
     """Summarizes the document, then rewrites each chunk of text."""
 
     # Initialize client
-    client = OllamaClient(
+    client = OpenAIClient(
         model=config["model"],
         base_url=config["base_url"],
     )
@@ -96,7 +97,7 @@ def rewrite_pdf_preserve_layout(
     are processed and included in the output document.
     """
 
-    client = OllamaClient(model=config["model"], base_url=config["base_url"])
+    client = OpenAIClient(model=config["model"], base_url=config["base_url"])
 
     # Summarize the document to provide rewriting context
     summary = summarize_doc(
@@ -108,13 +109,6 @@ def rewrite_pdf_preserve_layout(
 
     doc = pymupdf.open(stream=pdf_file.read(), filetype="pdf")
     doc.select(list(range(start_page - 1, end_page)))
-
-    font_file1 = "fonts/Yekan.ttf"
-    css1 = (
-        """@font-face {font-family: sans-serif; src: url("%s");}
-    body {font-family:sans-serif;} """
-        % font_file1
-    )
 
     # Count total blocks to rewrite
     total_blocks = 0
@@ -140,7 +134,9 @@ def rewrite_pdf_preserve_layout(
                 continue
 
             if _should_rewrite(text):
-                rewritten = rewrite_chunk_with_context(text, summary, instruction, client)
+                rewritten = rewrite_chunk_with_context(
+                    text, summary, instruction, client
+                )
                 if not rewritten:
                     rewritten = text
 
@@ -159,7 +155,7 @@ def rewrite_pdf_preserve_layout(
 
         for rect, text in zip(rects, rewrites):
             html_text = f"""<div>{text}</div>"""
-            page.insert_htmlbox(rect, html_text, css=css1)
+            page.insert_htmlbox(rect, html_text)
 
     doc.save(output_path)
 
