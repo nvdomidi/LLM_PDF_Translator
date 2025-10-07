@@ -1,4 +1,5 @@
-from typing import IO, Callable
+from concurrent.futures import ThreadPoolExecutor
+from typing import IO, Callable, Iterable, List, Tuple, TypeVar
 
 import pymupdf
 
@@ -11,6 +12,24 @@ from core.prompt import rewrite_prompt, rewrite_prompt_with_context
 from core.summarize import summarize_doc
 
 MIN_WORDS_TO_REWRITE = 10
+DEFAULT_MAX_WORKERS = 4
+I = TypeVar("I")
+O = TypeVar("O")
+
+
+def _map_concurrently(func: Callable[[I], O], items: Iterable[I]) -> list[O]:
+    """Apply ``func`` to ``items`` concurrently while preserving order."""
+
+    items = list(items)
+    if not items:
+        return []
+
+    max_workers = min(DEFAULT_MAX_WORKERS, len(items))
+    if max_workers <= 1:
+        return [func(item) for item in items]
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        return list(executor.map(func, items))
 
 
 def _should_rewrite(text: str, threshold: int = MIN_WORDS_TO_REWRITE) -> bool:
@@ -70,12 +89,13 @@ def rewrite_pdf(
     docs = extract_text(pdf_file, chunk_size=3000)
 
     # Rewrite each chunk of text
-    rewritten_chunks = []
-    for doc in docs:
+    def _rewrite(doc):
         rewritten_chunk = rewrite_chunk_with_context(doc, summary, instruction, client)
         if not rewritten_chunk:
-            rewritten_chunk = doc
-        rewritten_chunks.append(rewritten_chunk)
+            return doc
+        return rewritten_chunk
+
+    rewritten_chunks = _map_concurrently(_rewrite, docs)
 
     all_rewrites = "\n".join(rewritten_chunks)
 
@@ -128,27 +148,37 @@ def rewrite_pdf_preserve_layout(
         rects = []
         rewrites = []
 
+        blocks_to_rewrite: List[Tuple[pymupdf.Rect, str]] = []
+
         for block in blocks:
             x0, y0, x1, y1, text = block[:5]
             if not text.strip():
                 continue
 
             if _should_rewrite(text):
-                rewritten = rewrite_chunk_with_context(
-                    text, summary, instruction, client
-                )
-                if not rewritten:
-                    rewritten = text
-
                 rect = pymupdf.Rect(x0, y0, x1, y1)
-                rects.append(rect)
-                rewrites.append(rewritten)
+                blocks_to_rewrite.append((rect, text))
                 page.add_redact_annot(rect, fill=(1, 1, 1))
 
             processed_blocks += 1
             if progress_callback and total_blocks:
                 progress = 20 + 80 * processed_blocks / total_blocks
                 progress_callback(int(progress))
+
+        if blocks_to_rewrite:
+            texts = [text for _, text in blocks_to_rewrite]
+
+            def _rewrite(text: str) -> str:
+                rewritten = rewrite_chunk_with_context(
+                    text, summary, instruction, client
+                )
+                return rewritten or text
+
+            rewritten_texts = _map_concurrently(_rewrite, texts)
+
+            for (rect, _), rewritten in zip(blocks_to_rewrite, rewritten_texts):
+                rects.append(rect)
+                rewrites.append(rewritten)
 
         # Remove only the original text
         page.apply_redactions(images=0, graphics=0, text=0)
