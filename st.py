@@ -8,7 +8,7 @@ import yaml
 from dotenv import load_dotenv
 
 from core.extract import get_page_count
-from core.translate import translate_pdf_preserve_layout
+from core.rewrite import rewrite_pdf_preserve_layout
 from styles import apply_custom_styles
 
 CONFIG_FILE = Path("config.yaml")
@@ -35,7 +35,7 @@ def load_config():
 
 # Page configuration
 st.set_page_config(
-    page_title="PDF Translator",
+    page_title="PDF Rewriter",
     page_icon="📄",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -45,32 +45,12 @@ st.set_page_config(
 apply_custom_styles()
 
 # App title and description
-st.title("📄 LLM PDF Translator")
-
-# Language options
-COMMON_LANGUAGES = [
-    "English",
-    "Persian فارسی",
-    "Spanish",
-    "French",
-    "German",
-    "Italian",
-    "Portuguese",
-    "Russian",
-    "Turkish",
-    "Arabic",
-    "Chinese",
-    "Japanese",
-    "Korean",
-    "Hindi",
-    "Azerbaijani",
-]
+st.title("📄 LLM PDF Rewriter")
 
 
 def validate_inputs(
     pdf_file: IO[bytes],
-    src_lang: str,
-    tgt_lang: str,
+    prompt: str,
     start_page: int,
     end_page: int,
     page_count: int,
@@ -80,8 +60,8 @@ def validate_inputs(
 
     if pdf_file is None:
         errors.append("❌ Please upload a PDF first.")
-    if src_lang == tgt_lang:
-        errors.append("❌ Source and target languages must be different.")
+    if not prompt or not prompt.strip():
+        errors.append("❌ Please provide a rewriting prompt.")
     if end_page < start_page:
         errors.append("❌ End page must be greater than or equal to start page.")
     if page_count and (start_page < 1 or end_page > page_count):
@@ -90,21 +70,13 @@ def validate_inputs(
     return errors
 
 
-def show_translation_summary(pdf_file, start_page, end_page, src_lang, tgt_lang):
-    """Show translation summary metrics."""
-    st.markdown("### Translation Summary")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Pages Translated", f"{start_page}-{end_page}")
-    with col2:
-        st.metric("Source Language", src_lang.split()[0])
-    with col3:
-        st.metric("Target Language", tgt_lang.split()[0])
+def show_completion(download_path: str):
+    """Display completion message and download button."""
+    st.success("Rewriting completed successfuly!")
 
-    with open("output.pdf", "rb") as pdf_file:
+    with open(download_path, "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
 
-    # Download button
     st.download_button(
         label="Download PDF",
         data=pdf_bytes,
@@ -118,11 +90,11 @@ def show_instructions():
     st.markdown("""
     ### 🎯 How to use:
     1. **Upload** a PDF file using the file uploader above
-    2. **Select** source and target languages  
-    3. **Choose** the page range you want to translate
-    4. **Click** the Translate button to start the process
-    
-    *Ready to transform your documents with AI-powered translation!*
+    2. **Enter** a prompt that describes how you'd like the text rewritten
+    3. **Choose** the page range you want to rewrite
+    4. **Click** the Rewrite button to start the process
+
+    *Ready to transform your documents with AI-powered rewriting!*
     """)
 
 
@@ -130,7 +102,7 @@ def show_instructions():
 def main():
     # File upload section
     uploaded_pdf = st.file_uploader(
-        "Upload PDF file", type=["pdf"], help="Select a PDF file to translate"
+        "Upload PDF file", type=["pdf"], help="Select a PDF file to rewrite"
     )
 
     if uploaded_pdf:
@@ -144,16 +116,11 @@ def main():
             f"📄 **{uploaded_pdf.name}** ({file_size_mb:.2f} MB) loaded successfully!"
         )
 
-        # Language selection
-        col1, col2 = st.columns(2)
-        with col1:
-            src_lang = st.selectbox(
-                "From", options=COMMON_LANGUAGES, index=0, key="src_lang"
-            )
-        with col2:
-            tgt_lang = st.selectbox(
-                "To", options=COMMON_LANGUAGES, index=1, key="tgt_lang"
-            )
+        prompt = st.text_area(
+            "Rewriting prompt",
+            placeholder="e.g., Rewrite for a high school student",
+            help="Describe how you want the document to be rewritten.",
+        )
 
         # Get page count and set up page selection
         page_count = get_page_count(pdf_file)
@@ -183,39 +150,35 @@ def main():
             with pcol2:
                 end_page = st.number_input("Pages to", min_value=1, value=1, step=1)
 
-        # Translation button and logic
-        if st.button("🚀 Translate", type="primary", use_container_width=True):
+        # Rewrite button and logic
+        if st.button("✍️ Rewrite", type="primary", use_container_width=True):
             # Validate inputs
             errors = validate_inputs(
-                uploaded_pdf, src_lang, tgt_lang, start_page, end_page, page_count
+                uploaded_pdf, prompt, start_page, end_page, page_count
             )
 
             if errors:
                 for error in errors:
                     st.error(error)
             else:
-                # Perform translation with progress bar
+                # Perform rewriting with progress bar
                 progress_bar = st.progress(0)
-                with st.spinner("🔄 Translating your document..."):
+                with st.spinner("🔄 Rewriting your document..."):
                     config = load_config()
                     with open(pdf_file.name, "rb") as f:
-                        translate_pdf_preserve_layout(
+                        rewrite_pdf_preserve_layout(
                             f,
                             "output.pdf",
                             config,
-                            src_lang,
-                            tgt_lang,
+                            prompt,
                             start_page,
                             end_page,
                             progress_callback=progress_bar.progress,
                         )
 
                 progress_bar.empty()
-                st.success("✅ Translation completed successfully!")
 
-                show_translation_summary(
-                    pdf_file, start_page, end_page, src_lang, tgt_lang
-                )
+                show_completion("output.pdf")
     else:
         # Show instructions when no file uploaded
         show_instructions()

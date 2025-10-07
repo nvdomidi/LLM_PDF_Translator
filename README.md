@@ -1,10 +1,10 @@
-# LLM PDF Translator
+# LLM PDF Rewriter
 
-LLM PDF Translator summarizes and translates PDF documents using local or hosted large language models.
+LLM PDF Rewriter summarizes and rewrites PDF documents using local or hosted large language models.
 
 ## Features
-- Summarize a document to provide translation context.
-- Translate PDFs while preserving the original layout.
+- Summarize a document to provide rewriting context.
+- Rewrite PDFs while preserving the original layout.
 - Configure different LLM endpoints via `config.yaml`.
 
 ## Configuration
@@ -29,7 +29,7 @@ base_url: "https://api.openai.com/v1"
 model: "gpt-4o-mini"
 ```
 
-When using OpenRouter or OpenAI, update `core/translate.py` to initialize `OpenAIClient` instead of `OllamaClient` so that the correct API client is used.
+When using OpenRouter or OpenAI, update `core/rewrite.py` to initialize `OpenAIClient` instead of `OllamaClient` so that the correct API client is used.
 
 ## Environment Variables
 Create a `.env` file with the necessary API keys:
@@ -42,12 +42,12 @@ Only the key for the chosen endpoint is required.
 ## Build and Run
 Build the Docker image:
 ```bash
-docker build -t llm-pdf-translator .
+docker build -t llm-pdf-rewriter .
 ```
 
 Run the container, mapping the Streamlit port and connecting to the Ollama network:
 ```bash
-docker run --rm -it --network=ollama-network -p 8765:8501 llm-pdf-translator
+docker run --rm -it --network=ollama-network -p 8765:8501 llm-pdf-rewriter
 ```
 
 The app will be available at `http://localhost:8765`.

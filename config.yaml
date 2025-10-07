@@ -1,4 +1,6 @@
-base_url: http://ollama:11434
+# base_url: http://ollama:11434
 # base_url: "https://openrouter.ai/api/v1"
-model: "gemma3:1b"
+# model: "gemma3:1b"
 # model: "google/gemma-3-27b-it:free"
+base_url: "https://api.openai.com/v1"
+model: "gpt-5-nano"
